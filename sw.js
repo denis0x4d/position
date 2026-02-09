@@ -1,8 +1,8 @@
 ﻿const CACHE_NAME = 'position-calc-v1';
 const urlsToCache = [
-    '/',
-    'index.html',
-    'manifest.json'
+    './',
+    './index.html',
+    './manifest.json'
 ];
 
 self.addEventListener('install', event => {
