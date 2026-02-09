@@ -1,0 +1,326 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Position Calculator</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2196F3">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+        background: #f5f5f5; 
+        font-size: 14px;
+        max-width: 375px;
+        margin: 0 auto;
+    }
+    .tabs { 
+        display: flex; 
+        background: white; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+    }
+    .tab { 
+        flex: 1; 
+        padding: 12px 8px; 
+        text-align: center; 
+        background: none; 
+        border: none; 
+        font-size: 14px; 
+        cursor: pointer; 
+        line-height: 1.2;
+    }
+    .tab.active { 
+        background: #2196F3; 
+        color: white; 
+        font-weight: 500;
+    }
+    .tab-content { 
+        display: none; 
+        padding: 16px 12px; 
+        min-height: calc(100vh - 56px);
+    }
+    .tab-content.active { display: block; }
+    
+    .inputs { 
+        display: flex; 
+        flex-direction: column;
+        gap: 12px; 
+        margin-bottom: 16px; 
+    }
+    .input-group {
+        display: flex;
+        flex-direction: column;
+    }
+    .input-label {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 4px;
+        font-weight: 500;
+    }
+    input { 
+        padding: 12px 10px; 
+        font-size: 16px; 
+        border: 1px solid #ddd; 
+        border-radius: 6px; 
+        background: white; 
+        min-height: 44px;
+    }
+    input:focus {
+        border-color: #2196F3;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(33,150,243,0.2);
+    }
+    
+    .calc-grid { 
+        display: grid; 
+        grid-template-columns: repeat(3, 1fr); 
+        gap: 6px; 
+        margin-bottom: 16px; 
+    }
+    button { 
+        padding: 14px 8px; 
+        font-size: 18px; 
+        border: none; 
+        border-radius: 6px; 
+        background: #2196F3; 
+        color: white; 
+        cursor: pointer; 
+        min-height: 44px;
+        font-weight: 500;
+    }
+    button:active { 
+        background: #1976D2; 
+        transform: translateY(1px);
+    }
+    .calc-btn { 
+        background: #e8e8e8; 
+        color: #333; 
+        font-weight: 600;
+    }
+    .calc-btn:active { 
+        background: #d8d8d8; 
+    }
+    .clear-btn {
+        background: #ff9800;
+        color: white;
+        font-weight: 600;
+    }
+    .clear-btn:active {
+        background: #f57c00;
+    }
+    
+    .calculate-btn { 
+        width: 100%; 
+        font-size: 16px; 
+        padding: 16px; 
+        margin-bottom: 16px;
+        font-weight: 600;
+        min-height: 48px;
+    }
+    
+    .result { 
+        background: white; 
+        padding: 16px; 
+        border-radius: 6px; 
+        text-align: center; 
+        font-size: 20px; 
+        font-weight: 700; 
+        color: #2196F3;
+        box-shadow: 0 2px 8px rgba(33,150,243,0.2);
+    }
+    .static-text { 
+        background: white; 
+        padding: 20px; 
+        border-radius: 6px; 
+        line-height: 1.5; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .static-text h2 {
+        font-size: 18px;
+        margin-bottom: 12px;
+        color: #2196F3;
+    }
+    .static-text p {
+        font-size: 14px;
+        margin-bottom: 8px;
+        color: #333;
+    }
+</style>
+</head>
+<body>
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab(0)">Calculator</button>
+        <button class="tab" onclick="switchTab(1)">HoT</button>
+    </div>
+    
+   <div id="tab0" class="tab-content active">
+    <div class="inputs">
+        <div class="input-group">
+            <div class="input-label">Risk</div>
+            <input type="text" id="risk" placeholder="0">
+        </div>
+        <div class="input-group">
+            <div class="input-label">Stop</div>
+            <input type="text" id="stop" placeholder="0">
+        </div>
+        <div class="input-group">
+            <div class="input-label">Price</div>
+            <input type="text" id="price" placeholder="0">
+        </div>
+    </div>
+    
+    <div class="calc-grid">
+        <button class="calc-btn" onclick="calcInput('7')">7</button>
+        <button class="calc-btn" onclick="calcInput('8')">8</button>
+        <button class="calc-btn" onclick="calcInput('9')">9</button>
+        <button class="calc-btn" onclick="calcInput('4')">4</button>
+        <button class="calc-btn" onclick="calcInput('5')">5</button>
+        <button class="calc-btn" onclick="calcInput('6')">6</button>
+        <button class="calc-btn" onclick="calcInput('1')">1</button>
+        <button class="calc-btn" onclick="calcInput('2')">2</button>
+        <button class="calc-btn" onclick="calcInput('3')">3</button>
+        <button class="calc-btn" onclick="calcInput('0')">0</button>
+        <button class="calc-btn" onclick="calcInput('.')">.</button>
+        <button class="clear-btn" onclick="backSpace()">⌫</button>
+    </div>
+    <div id="result" class="result" style="display: none;"></div>    
+    <button class="calculate-btn" onclick="calculate()">Рассчитать позицию</button>
+    
+
+</div>
+ 
+    <div id="tab1" class="tab-content">
+        <div id="hot-stocks" class="static-text" style="margin-top:12px;">
+            <h2 style="color:#2196F3;margin-bottom:8px;">Hot stocks</h2>
+            <div class="input-group" style="margin-top:6px;">
+                <div class="input-label">Days back</div>
+                <input type="number" id="hot-days" value="10" min="1" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
+            </div>
+            <div class="input-group" style="margin-top:8px;">
+                <div class="input-label">Threshold (x)</div>
+                <input type="number" id="hot-threshold" value="2" step="0.1" min="0" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
+            </div>
+            <div style="margin-top:10px;">
+                <button style="width:100%;background:#4caf50;border-radius:6px;padding:12px;border:none;color:#fff;font-weight:600;" onclick="loadHotStocksFromUI()">Обновить</button>
+            </div>
+            <div id="hot-results" style="margin-top:12px;"></div>
+        </div>
+    </div>
+
+<script src="fetchMoexData.js"></script>
+<script>
+    let currentInput = 'risk';
+    
+    function switchTab(index) {
+        document.querySelectorAll('.tab').forEach((tab, i) => {
+            tab.classList.toggle('active', i === index);
+        });
+        document.querySelectorAll('.tab-content').forEach((content, i) => {
+            content.classList.toggle('active', i === index);
+        });
+        // When opening the info tab, show prompt to update
+        // if (index === 1) {
+        //     const results = document.getElementById('hot-results');
+        //     if (results) {
+        //         results.innerHTML = '<div style="padding:12px;background:#fff;border-radius:6px">Нажмите "Обновить" для загрузки</div>';
+        //     }
+        // }
+    }
+    
+    // Функция переключения активного поля
+    function setActiveField(fieldId) {
+        currentInput = fieldId;
+        // Подсветка активного поля
+        document.querySelectorAll('input').forEach(input => {
+            input.style.borderColor = input.id === fieldId ? '#2196F3' : '#ddd';
+            input.style.boxShadow = input.id === fieldId ? '0 0 0 2px rgba(33,150,243,0.2)' : 'none';
+        });
+    }
+    
+    // Инициализация при загрузке
+    document.addEventListener('DOMContentLoaded', () => {
+        setActiveField('risk');
+        
+        // Переключение по клику на поле
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('focus', () => {
+                setActiveField(input.id);
+            });
+            input.addEventListener('click', () => {
+                setActiveField(input.id);
+            });
+        });
+    });
+    
+    function calcInput(value) {
+        const input = document.getElementById(currentInput);
+        input.value += value;
+        input.focus(); // Возвращаем фокус на активное поле
+    }
+    
+    function backSpace() {
+        document.getElementById(currentInput).value = document.getElementById(currentInput).value.slice(0, -1);
+        document.getElementById(currentInput).focus();
+    }
+    
+    function calculate() {
+        const risk = parseFloat(document.getElementById('risk').value) || 0;
+        const stop = parseFloat(document.getElementById('stop').value) || 0;
+        const price = parseFloat(document.getElementById('price').value) || 0;
+        
+        if (risk <= 0 || stop <= 0 || price <= 0) {
+            alert('Введите корректные значения во все поля');
+            return;
+        }
+        
+        const ratio = Math.abs(stop / price - 1); 
+        const position = Math.trunc(risk / ratio);
+        
+        document.getElementById('result').innerHTML = `Позиция: ${position} | Стоп: ${Math.round(ratio*1000)/10}%`;
+        document.getElementById('result').style.display = 'block';
+    }
+
+    // Fetch hot stocks using UI parameters and render results
+    function loadHotStocksFromUI() {
+        if (!window.getHotStocks) {
+            alert('Модуль данных не загружен');
+            return;
+        }
+        const days = parseInt(document.getElementById('hot-days').value) || 10;
+        const threshold = parseFloat(document.getElementById('hot-threshold').value) || 2;
+        const hotContainer = document.getElementById('hot-results');
+        hotContainer.innerHTML = 'Загрузка...';
+        getHotStocks(days, threshold).then(hot => {
+            if (!hot || Object.keys(hot).length === 0) {
+                hotContainer.innerHTML = '<div style="padding:12px;background:#fff;border-radius:6px">Нет горячих акций</div>';
+                return;
+            }
+            let html = '';
+            for (const date of Object.keys(hot).sort().reverse()) {
+                const list = hot[date];
+                html += `<div style="margin-bottom:10px"><strong>${date}</strong><ul style="margin:6px 0 0 18px">`;
+                for (const item of list) {
+                    html += '<li>'+(item.turnover>300?'<b>':'')+
+                        `<a href='https://ru.tradingview.com/chart/?symbol=RUS:${item.secId}' target=_blank>${item.secId}</a> - x${item.ratio} - ${item.turnover} млн.`+
+                        (item.turnover>300?'</b>':'')+'</li>';
+                }
+                html += '</ul></div>';
+            }
+            hotContainer.innerHTML = html;
+        }).catch(err => {
+            hotContainer.innerHTML = '<div style="padding:12px;background:#fff;border-radius:6px;color:#c00">Ошибка загрузки данных</div>';
+            console.error(err);
+        });
+    }
+    
+    // PWA установка
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+    });
+</script>
+
+</body>
+</html>
