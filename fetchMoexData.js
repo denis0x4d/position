@@ -108,7 +108,7 @@ function computeHotStocks(imoexData, averageVolume, threshold) {
         continue;
       } 
       const ratio = divideBigInt(stockData.volume, avgData.average); 
-      if (ratio > threshold) {
+      if (ratio >= threshold) {
         if (!hotStocks.has(date)) {
           hotStocks.set(date, []);
         }
