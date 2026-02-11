@@ -167,7 +167,7 @@
         </div>
         <div class="input-group">
             <div class="input-label">Price</div>
-            <input type="text" id="price" placeholder="0" inputmode="none">
+            <input type="text" id="price" placeholder="0"  inputmode="none">
         </div>
     </div>
     
@@ -302,9 +302,11 @@
                 const list = hot[date];
                 html += `<div style="margin-bottom:10px"><strong>${date}</strong><ul style="margin:6px 0 0 18px">`;
                 for (const item of list) {
-                    html += '<li>'+(item.turnover>300?'<b>':'')+
+                    if (item.turnover>10){
+                      html += '<li>'+(item.turnover>300?'<b>':'')+
                         `<a href='https://ru.tradingview.com/chart/?symbol=RUS:${item.secId}' target=_blank>${item.secId}</a> - x${item.ratio} - ${item.turnover} млн.`+
                         (item.turnover>300?'</b>':'')+'</li>';
+                    }
                 }
                 html += '</ul></div>';
             }

@@ -3,8 +3,8 @@
  * @param {string} date - Date in format YYYY-MM-DD
  * @returns {Promise<Object>} Stock data from MOEX API
  */
-async function fetchMoexData(date) {
-  const url = `https://iss.moex.com/iss/history/engines/stock/markets/shares/boards/tqbr/securities.json?date=${date}`;
+async function fetchMoexData(date, start = 0) {
+  const url = `https://iss.moex.com/iss/history/engines/stock/markets/shares/boards/tqbr/securities.json?date=${date}&start=${start}`;
   try {
     const response = await fetch(url);
     if (!response.ok) {
@@ -52,25 +52,49 @@ async function loadData(daysBack = 10) {
   for (const date of dates) {
     let imoexDay = new Map();
     imoexData.set(date, imoexDay);
-    try {
-      const a = await fetchMoexData(date);
-      const columns = a.history.columns;
-      const idxName = columns.indexOf('SECID');
-      const idxVol = columns.indexOf('VOLUME');
-      const idxDate = columns.indexOf('TRADEDATE');
-      const idxClose = columns.indexOf('CLOSE');
-      if (idxName === -1 || idxVol === -1 || idxDate === -1 || idxClose === -1) {
-        console.log("cannot find all indexes");
-        alert("cannot find all indexes");
-        return;
+    let page = 0;
+    while (page >= 0) {
+      try {
+        const a = await fetchMoexData(date,page);
+        
+        const columns = a.history.columns;
+        const idxName = columns.indexOf('SECID');
+        const idxVol = columns.indexOf('VOLUME');
+        const idxDate = columns.indexOf('TRADEDATE');
+        const idxClose = columns.indexOf('CLOSE');
+        if (idxName === -1 || idxVol === -1 || idxDate === -1 || idxClose === -1) {
+          console.log("cannot find all indexes");
+          alert("cannot find all indexes");
+          return;
+        }
+        const data = a.history.data;
+        for (let i = 0; i < data.length; i++) {
+          imoexDay.set(data[i][idxName], { volume: BigInt(data[i][idxVol]), turnover: data[i][idxVol] * data[i][idxClose] });
+        }
+
+        const cursor = a["history.cursor"];
+        const cursorColumns = cursor.columns;
+        const idxPageIndex=cursorColumns.indexOf("INDEX");
+        const idxPageTotal=cursorColumns.indexOf("TOTAL");
+        const idxPageSize=cursorColumns.indexOf("PAGESIZE");
+        if (idxPageIndex === -1 || idxPageTotal === -1 || idxPageSize === -1 ) {
+          console.log("cannot find all indexes for page");
+          alert("cannot find all indexes for page");
+          return;
+        }
+        const pageData=cursor.data[0];
+        let pageIndex=pageData[idxPageIndex];
+        let pageTotal=pageData[idxPageTotal];
+        let pageSize=pageData[idxPageSize];
+        if (pageIndex+pageSize >= pageTotal) { 
+          page = -1;
+        } else {
+          page += pageSize;
+        } 
+      } catch (error) {
+        console.error('Ошибка при получении данных:', error);
+        alert("Ошибка при получении данных");
       }
-      const data = a.history.data;
-      for (let i = 0; i < data.length; i++) {
-        imoexDay.set(data[i][idxName], {volume:BigInt(data[i][idxVol]),turnover:data[i][idxVol]*data[i][idxClose]});
-      }
-    } catch (error) {
-      console.error('Ошибка при получении данных:', error);
-      alert("Ошибка при получении данных");
     }
   }
   return imoexData;
@@ -106,13 +130,13 @@ function computeHotStocks(imoexData, averageVolume, threshold) {
       const avgData = averageVolume.get(secId);
       if (avgData.average === BigInt(0)) {
         continue;
-      } 
-      const ratio = divideBigInt(stockData.volume, avgData.average); 
+      }
+      const ratio = divideBigInt(stockData.volume, avgData.average);
       if (ratio >= threshold) {
         if (!hotStocks.has(date)) {
           hotStocks.set(date, []);
         }
-        const turnover = Math.trunc(stockData.turnover/1e6);
+        const turnover = Math.trunc(stockData.turnover / 1e6);
         hotStocks.get(date).push({ secId, ratio, turnover });
       }
     }
@@ -135,3 +159,8 @@ async function getHotStocks(daysBack = 10, threshold = 1.5) {
 }
 
 window.getHotStocks = getHotStocks;
+
+// (async () => {
+//   const hotStocks = await getHotStocks(10, 1.5);
+//   console.log(hotStocks);
+// })();
