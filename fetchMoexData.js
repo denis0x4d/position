@@ -18,6 +18,14 @@ async function fetchMoexData(date, start = 0) {
   }
 }
 
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+
 //days from yesterday, skipping weekends
 function* workDaysGenerator(daysBack = 10, startDate = new Date()) {
   let current = new Date(startDate);
@@ -31,11 +39,7 @@ function* workDaysGenerator(daysBack = 10, startDate = new Date()) {
       continue;
     }
     i++;
-    const year = current.getFullYear();
-    const month = String(current.getMonth() + 1).padStart(2, '0');
-    const day = String(current.getDate()).padStart(2, '0');
-    const dateFrmt = `${year}-${month}-${day}`;
-    yield dateFrmt;
+    yield formatDate(current);
   }
 }
 
@@ -55,8 +59,8 @@ async function loadData(daysBack = 10) {
     let page = 0;
     while (page >= 0) {
       try {
-        const a = await fetchMoexData(date,page);
-        
+        const a = await fetchMoexData(date, page);
+
         const columns = a.history.columns;
         const idxName = columns.indexOf('SECID');
         const idxVol = columns.indexOf('VOLUME');
@@ -74,23 +78,23 @@ async function loadData(daysBack = 10) {
 
         const cursor = a["history.cursor"];
         const cursorColumns = cursor.columns;
-        const idxPageIndex=cursorColumns.indexOf("INDEX");
-        const idxPageTotal=cursorColumns.indexOf("TOTAL");
-        const idxPageSize=cursorColumns.indexOf("PAGESIZE");
-        if (idxPageIndex === -1 || idxPageTotal === -1 || idxPageSize === -1 ) {
+        const idxPageIndex = cursorColumns.indexOf("INDEX");
+        const idxPageTotal = cursorColumns.indexOf("TOTAL");
+        const idxPageSize = cursorColumns.indexOf("PAGESIZE");
+        if (idxPageIndex === -1 || idxPageTotal === -1 || idxPageSize === -1) {
           console.log("cannot find all indexes for page");
           alert("cannot find all indexes for page");
           return;
         }
-        const pageData=cursor.data[0];
-        let pageIndex=pageData[idxPageIndex];
-        let pageTotal=pageData[idxPageTotal];
-        let pageSize=pageData[idxPageSize];
-        if (pageIndex+pageSize >= pageTotal) { 
+        const pageData = cursor.data[0];
+        let pageIndex = pageData[idxPageIndex];
+        let pageTotal = pageData[idxPageTotal];
+        let pageSize = pageData[idxPageSize];
+        if (pageIndex + pageSize >= pageTotal) {
           page = -1;
         } else {
           page += pageSize;
-        } 
+        }
       } catch (error) {
         console.error('Ошибка при получении данных:', error);
         alert("Ошибка при получении данных");
@@ -120,7 +124,7 @@ function computeAverageVolume(imoexData) {
 }
 
 
-function computeHotStocks(imoexData, averageVolume, threshold) {
+function computeHotStocks(imoexData, averageVolume) {
   let hotStocks = new Map();
   for (const [date, dayData] of imoexData.entries()) {
     for (const [secId, stockData] of dayData.entries()) {
@@ -132,25 +136,29 @@ function computeHotStocks(imoexData, averageVolume, threshold) {
         continue;
       }
       const ratio = divideBigInt(stockData.volume, avgData.average);
-      if (ratio >= threshold) {
-        if (!hotStocks.has(date)) {
-          hotStocks.set(date, []);
-        }
-        const turnover = Math.trunc(stockData.turnover / 1e6);
-        hotStocks.get(date).push({ secId, ratio, turnover });
+      if (!hotStocks.has(date)) {
+        hotStocks.set(date, []);
       }
+      const turnover = Math.trunc(stockData.turnover / 1e6);
+      hotStocks.get(date).push({ secId, ratio, turnover });
     }
   }
   return hotStocks;
 }
 
+const cacheImoexData = new Map();
 
 // Expose a helper to get hot stocks for the UI
-async function getHotStocks(daysBack = 10, threshold = 1.5) {
-  const moexData = await loadData(daysBack);
-  const averageVolume = computeAverageVolume(moexData);
-  const hotStocks = computeHotStocks(moexData, averageVolume, threshold);
-  // Convert Map to plain object for easier consumption by UI
+async function getHotStocks(daysBack = 10) {
+
+  const cacheKey = `hotStocks_${daysBack}_${formatDate(new Date())}`;
+  if (!cacheImoexData.has(cacheKey)) {
+    const moexData = await loadData(daysBack);
+    const averageVolume = computeAverageVolume(moexData);
+    const hotStocks = computeHotStocks(moexData, averageVolume);
+    cacheImoexData.set(cacheKey, hotStocks);  
+  }
+  const hotStocks = cacheImoexData.get(cacheKey);
   const out = {};
   for (const [date, arr] of hotStocks.entries()) {
     out[date] = arr;
@@ -160,7 +168,9 @@ async function getHotStocks(daysBack = 10, threshold = 1.5) {
 
 window.getHotStocks = getHotStocks;
 
-// (async () => {
-//   const hotStocks = await getHotStocks(10, 1.5);
-//   console.log(hotStocks);
-// })();
+//  (async () => {
+//    const hotStocks = await getHotStocks(10);
+//    console.log(hotStocks);
+//    const hotStocks1 = await getHotStocks(10);
+//    console.log(hotStocks1);
+//   })();
