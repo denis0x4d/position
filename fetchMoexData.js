@@ -156,6 +156,7 @@ async function getHotStocks(daysBack = 10) {
     const moexData = await loadData(daysBack);
     const averageVolume = computeAverageVolume(moexData);
     const hotStocks = computeHotStocks(moexData, averageVolume);
+    cacheImoexData.clear();
     cacheImoexData.set(cacheKey, hotStocks);  
   }
   const hotStocks = cacheImoexData.get(cacheKey);
