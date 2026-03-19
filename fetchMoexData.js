@@ -105,42 +105,45 @@ async function loadData(daysBack = 10) {
 }
 
 
-function computeAverageVolume(imoexData) {
-  let averageVolume = new Map();
+function computeAverageVolumeAndTurnover(imoexData) {
+  const averageVolumeAndTurnover = new Map();
   for (const [date, dayData] of imoexData.entries()) {
     for (const [secId, stockData] of dayData.entries()) {
-      if (!averageVolume.has(secId)) {
-        averageVolume.set(secId, { totalVolume: BigInt(0), count: 0 });
+      if (!averageVolumeAndTurnover.has(secId)) {
+        averageVolumeAndTurnover.set(secId, { totalVolume: BigInt(0), totalTurnover:0.0, count: 0 });
       }
-      const current = averageVolume.get(secId);
+      const current = averageVolumeAndTurnover.get(secId);
       current.totalVolume += stockData.volume;
+      current.totalTurnover += stockData.turnover;
       current.count += 1;
     }
   }
-  for (const [secId, data] of averageVolume.entries()) {
-    data.average = data.totalVolume / BigInt(data.count);
+  for (const [secId, data] of averageVolumeAndTurnover.entries()) {
+    data.averageVolume = data.totalVolume / BigInt(data.count);
+    data.averageTurnover = data.totalTurnover / data.count;
   }
-  return averageVolume;
+  return averageVolumeAndTurnover;
 }
 
 
-function computeHotStocks(imoexData, averageVolume) {
+function computeHotStocks(imoexData, averageVolumeAndTurnover) {
   let hotStocks = new Map();
   for (const [date, dayData] of imoexData.entries()) {
     for (const [secId, stockData] of dayData.entries()) {
-      if (!averageVolume.has(secId)) {
+      if (!averageVolumeAndTurnover.has(secId)) {
         continue;
       }
-      const avgData = averageVolume.get(secId);
-      if (avgData.average === BigInt(0)) {
+      const avgData = averageVolumeAndTurnover.get(secId);
+      if (avgData.averageVolume === BigInt(0)) {
         continue;
       }
-      const ratio = divideBigInt(stockData.volume, avgData.average);
+      const ratioVolume = divideBigInt(stockData.volume, avgData.averageVolume);
+      const ratioTurnover = Math.round(10 * stockData.turnover / avgData.averageTurnover) / 10;
       if (!hotStocks.has(date)) {
         hotStocks.set(date, []);
       }
       const turnover = Math.trunc(stockData.turnover / 1e6);
-      hotStocks.get(date).push({ secId, ratio, turnover });
+      hotStocks.get(date).push({ secId, ratioVolume, ratioTurnover, turnover });
     }
   }
   return hotStocks;
@@ -154,7 +157,7 @@ async function getHotStocks(daysBack = 10) {
   const cacheKey = `hotStocks_${daysBack}_${formatDate(new Date())}`;
   if (!cacheImoexData.has(cacheKey)) {
     const moexData = await loadData(daysBack);
-    const averageVolume = computeAverageVolume(moexData);
+    const averageVolume = computeAverageVolumeAndTurnover(moexData);
     const hotStocks = computeHotStocks(moexData, averageVolume);
     cacheImoexData.clear();
     cacheImoexData.set(cacheKey, hotStocks);  
